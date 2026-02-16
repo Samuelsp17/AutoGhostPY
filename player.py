@@ -26,6 +26,9 @@ class Player:
     
     def _parse_key(self, key_str: str):
         """Converte string da tecla para objeto Key"""
+        # Proteção contra None ou valores inválidos
+        if not key_str or not isinstance(key_str, str):
+            return None
         key_map = {
             'Key.space': Key.space,
             'Key.enter': Key.enter,
@@ -62,11 +65,61 @@ class Player:
             'Key.f10': Key.f10,
             'Key.f11': Key.f11,
             'Key.f12': Key.f12,
+            'Key.f13': Key.f13,
+            'Key.f14': Key.f14,
+            'Key.f15': Key.f15,
+            'Key.f16': Key.f16,
+            'Key.f17': Key.f17,
+            'Key.f18': Key.f18,
+            'Key.f19': Key.f19,
+            'Key.f20': Key.f20,
             'Key.caps_lock': Key.caps_lock,
             'Key.num_lock': Key.num_lock,
             'Key.scroll_lock': Key.scroll_lock,
+            'Key.print_screen': Key.print_screen,
+            'Key.pause': Key.pause,
+            'Key.menu': Key.menu,
+            # Teclas específicas do numpad (não duplicadas)
+            'Key.clear': None,    # Num 5 (centro) - não disponível no pynput  
         }
-        return key_map.get(key_str, key_str)
+        
+        # Se estiver no mapa, retorna o objeto Key
+        if key_str in key_map:
+            return key_map[key_str]
+        
+        # Se começar com 'Key.', tenta pegar dinamicamente
+        if key_str.startswith('Key.'):
+            # Teclas que sabemos que não existem
+            if key_str == 'Key.clear':
+                return None  # Ignora Num 5 do centro quando NumLock desligado
+            
+            try:
+                key_name = key_str.replace('Key.', '')
+                return getattr(Key, key_name)
+            except AttributeError:
+                print(f"Tecla não reconhecida: {key_str}")
+                return None
+        
+        # Se for código VK numérico do numpad (VK_NUMPAD0 = 96 até VK_NUMPAD9 = 105)
+        if key_str.isdigit():
+            code = int(key_str)
+            if 96 <= code <= 105:  # Numpad 0-9
+                # Retorna o caractere numérico correspondente
+                return chr(ord('0') + (code - 96))
+            elif code == 110:  # VK_DECIMAL - Numpad .
+                return '.'
+            elif code == 106:  # VK_MULTIPLY - Numpad *
+                return '*'
+            elif code == 107:  # VK_ADD - Numpad +
+                return '+'
+            elif code == 109:  # VK_SUBTRACT - Numpad -
+                return '-'
+            elif code == 111:  # VK_DIVIDE - Numpad /
+                return '/'
+        
+        # Caractere normal (letra/número)
+        return key_str
+        
     
     def _parse_button(self, button_str: str):
         """Converte string do botão para objeto Button"""
@@ -97,6 +150,8 @@ class Player:
             
         elif event_type == "key_press":
             key = self._parse_key(event["key"])
+            if key is None:
+                return  # Ignora teclas desconhecidas
             if isinstance(key, str):
                 self.keyboard.press(key)
             else:
@@ -104,6 +159,8 @@ class Player:
                 
         elif event_type == "key_release":
             key = self._parse_key(event["key"])
+            if key is None:
+                return  # Ignora teclas desconhecidas
             if isinstance(key, str):
                 self.keyboard.release(key)
             else:

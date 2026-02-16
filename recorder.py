@@ -58,28 +58,32 @@ class Recorder:
             try:
                 key_str = key.char
             except AttributeError:
-                key_str = str(key)
+                key_str = str(key) if key else None
             
-            with self._lock:
-                self.events.append({
-                    "type": "key_press",
-                    "key": key_str,
-                    "timestamp": self._get_timestamp()
-                })
+            # Só grava se conseguiu identificar a tecla
+            if key_str:
+                with self._lock:
+                    self.events.append({
+                        "type": "key_press",
+                        "key": key_str,
+                        "timestamp": self._get_timestamp()
+                    })
     
     def _on_release(self, key):
         if self.recording:
             try:
                 key_str = key.char
             except AttributeError:
-                key_str = str(key)
+                key_str = str(key) if key else None
             
-            with self._lock:
-                self.events.append({
-                    "type": "key_release",
-                    "key": key_str,
-                    "timestamp": self._get_timestamp()
-                })
+            # Só grava se conseguiu identificar a tecla
+            if key_str:
+                with self._lock:
+                    self.events.append({
+                        "type": "key_release",
+                        "key": key_str,
+                        "timestamp": self._get_timestamp()
+                    })
     
     def start(self):
         self.events = []
