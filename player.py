@@ -18,6 +18,7 @@ class Player:
         self._thread: Optional[threading.Thread] = None
         self._on_finish_callback: Optional[Callable] = None
         self._on_stop_callback: Optional[Callable] = None
+        self._pressed_modifiers: set = set()  # Rastreia modificadores pressionados
         
     def load_from_file(self, filepath: str):
         with open(filepath, 'r', encoding='utf-8') as f:
@@ -151,24 +152,54 @@ class Player:
         elif event_type == "key_press":
             key = self._parse_key(event["key"])
             if key is None:
-                return  # Ignora teclas desconhecidas
-            if isinstance(key, str):
+                return
+            
+            # Se for tecla modificadora, apenas armazena o estado
+            if key in (Key.ctrl, Key.ctrl_r, Key.alt, Key.alt_r, Key.shift, Key.shift_r, Key.cmd, Key.cmd_r):
+                self._pressed_modifiers.add(key)
                 self.keyboard.press(key)
             else:
-                self.keyboard.press(key)
+                # Se houver modificadores pressionados, executa combinação
+                if self._pressed_modifiers:
+                    # Pressiona a tecla principal com todos os modificadores
+                    for mod in self._pressed_modifiers:
+                        self.keyboard.press(mod)
+                    self.keyboard.press(key)
+                else:
+                    # Tecla simples
+                    if isinstance(key, str):
+                        self.keyboard.press(key)
+                    else:
+                        self.keyboard.press(key)
                 
         elif event_type == "key_release":
             key = self._parse_key(event["key"])
             if key is None:
-                return  # Ignora teclas desconhecidas
-            if isinstance(key, str):
+                return
+            
+            # Se for tecla modificadora, libera e remove do conjunto
+            if key in (Key.ctrl, Key.ctrl_r, Key.alt, Key.alt_r, Key.shift, Key.shift_r, Key.cmd, Key.cmd_r):
+                self._pressed_modifiers.discard(key)
                 self.keyboard.release(key)
             else:
-                self.keyboard.release(key)
+                # Libera a tecla principal
+                if isinstance(key, str):
+                    self.keyboard.release(key)
+                else:
+                    self.keyboard.release(key)
     
     def _play_once(self):
         if not self.events:
             return
+        
+        # Limpa modificadores pendentes de execuções anteriores
+        self._pressed_modifiers.clear()
+        # Libera todas as teclas modificadoras por segurança
+        for mod in [Key.ctrl, Key.ctrl_r, Key.alt, Key.alt_r, Key.shift, Key.shift_r, Key.cmd, Key.cmd_r]:
+            try:
+                self.keyboard.release(mod)
+            except:
+                pass
         
         start_time = time.time()
         
